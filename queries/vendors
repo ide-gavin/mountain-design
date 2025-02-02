@@ -1,0 +1,44 @@
+create view vCurrentPur as
+select pol.ProductID,
+       sum(pol.QtyOrdered) as TotalQtyOnOrder,
+       max(pol.Price) as MaxPriceCurrent,
+       min(pol.Price) as MinPriceCurrent,
+       avg(pol.Price) as AvgPriceCurrent
+from tblPurchaseOrderLine pol
+group by pol.ProductID;
+
+create view vHistoricalPur as
+select ph.ProductID,
+       max(ph.Price) as MaxPriceHistory,
+       min(ph.Price) as MinPriceHistory,
+       avg(ph.Price) as AvgPriceHistory,
+       min(ph.DatePurchased) as OldestPurchaseDate
+from tblPurchaseHistory ph
+group by ph.ProductID;
+
+create view vOldestPur as
+select ph.ProductID,
+       ph.DatePurchased as OldestPurchaseDate,
+       ph.Price as PriceOnOldestDate
+from tblPurchaseHistory ph
+inner join (
+    select ProductID, min(DatePurchased) as OldestPurchaseDate
+    from tblPurchaseHistory
+    group by ProductID
+) earliest on ph.ProductID = earliest.ProductID and ph.DatePurchased = earliest.OldestPurchaseDate;
+
+select p.ProductID,
+       p.ProductDescription,
+       isnull(cp.TotalQtyOnOrder, 0) as TotalQtyOnOrder,
+       isnull(cp.MaxPriceCurrent, 0) as MaxPriceCurrent,
+       isnull(cp.MinPriceCurrent, 0) as MinPriceCurrent,
+       isnull(cp.AvgPriceCurrent, 0) as AvgPriceCurrent,
+       isnull(hp.MaxPriceHistory, 0) as MaxPriceHistory,
+       isnull(hp.MinPriceHistory, 0) as MinPriceHistory,
+       isnull(hp.AvgPriceHistory, 0) as AvgPriceHistory,
+       isnull(convert(varchar, hp.OldestPurchaseDate, 107), 'No Previous Purchase') as OldestPurchaseDate,
+       isnull(op.PriceOnOldestDate, 0) as PriceOnOldestDate
+from tblProduct p
+left join vCurrentPur cp on p.ProductID = cp.ProductID
+left join vHistoricalPur hp on p.ProductID = hp.ProductID
+left join vOldestPur op on p.ProductID = op.ProductID;

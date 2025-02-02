@@ -1,0 +1,32 @@
+select Ord.ProductID, Rec.DateReceived, Ord.PONumber AS PurchaseOrderNumber, Rec.QtyReceived, Con.ConditionDescription as ConditionReceived
+from tblReceiver Rec
+inner join tblPurchaseOrderLine Ord
+on Rec.POLineID = Ord.POLineID
+inner join tblCondition Con
+on Rec.ConditionID = Con.ConditionID
+where Con.ConditionDescription like '%damage%'
+order by Ord.ProductID asc, Rec.DateReceived asc;
+
+select Ord.ProductID,
+Prod.ProductDescription,
+Ty.TypeDescription,
+Rec.DateReceived,
+Ord.PONumber,
+Ven.VendorName,
+'(' + SUBSTRING(VendorPhone, 1, 3) + ') ' + SUBSTRING(VendorPhone, 4, 3) + '-' +
+SUBSTRING(VendorPhone, 7, 4) as VendorPhoneNumber,
+Rec.QtyReceived,
+Con.ConditionDescription
+from tblReceiver Rec
+inner join tblPurchaseOrderLine Ord on Rec.POLineID = Ord.POLineID
+inner join tblCondition Con
+on Rec.ConditionID = Con.ConditionID
+inner join tblProduct Prod
+on Ord.ProductID = Prod.ProductID
+inner join tblProductType Ty
+on Prod.ProductTypeID = Ty.ProductTypeID
+inner join tblPurchaseOrder Pur
+on Ord.PONumber = Pur.PONumber
+inner join tblVendor Ven on Pur.VendorID = Ven.VendorID
+where Con.ConditionDescription like '%damage%'
+order by Ord.ProductID asc, Rec.DateReceived asc;

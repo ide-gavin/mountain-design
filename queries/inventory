@@ -90,3 +90,59 @@ where p.ProductDescription = 'Alpine Small Pot'
     where sub_p.ProductDescription = 'Alpine Small Pot'
   )
 order by pol.PONumber;
+
+with EarliestPurchase as (
+    select ph.ProductID,
+           ph.DatePurchased,
+           ph.Qty as QtyPurchased,
+           ph.Price as PurchasePrice
+    from tblPurchaseHistory ph
+    where ph.DatePurchased = (
+        select min(sub.DatePurchased)
+        from tblPurchaseHistory sub
+        where sub.ProductID = ph.ProductID
+    )
+)
+select p.ProductID,
+       p.ProductDescription,
+       p.EOQ as ProductEOQ,
+       ep.DatePurchased as EarliestPurchaseDate,
+       isnull(ep.QtyPurchased, 0) as QtyPurchased,
+       isnull(ep.PurchasePrice, 0) as PurchasePrice
+from tblProduct p
+left join EarliestPurchase ep on p.ProductID = ep.ProductID
+order by p.ProductID;
+
+create view vEarliestHistoricalPrice as
+with EarliestPurchase as (
+    select ph.ProductID,
+           ph.DatePurchased as EarliestPurchaseDate,
+           ph.Price as EarliestHistoricalPrice
+    from tblPurchaseHistory ph
+    where ph.DatePurchased = (
+        select min(sub.DatePurchased)
+        from tblPurchaseHistory sub
+        where sub.ProductID = ph.ProductID
+    )
+)
+select ep.ProductID,
+       ep.EarliestPurchaseDate,
+       ep.EarliestHistoricalPrice
+from EarliestPurchase ep;
+
+select pol.ProductID,
+       p.ProductDescription,
+       vep.EarliestPurchaseDate,
+       po.PODatePlace as PODatePlaced,
+       vep.EarliestHistoricalPrice,
+       pol.Price as CurrentPrice,
+       pol.PONumber,
+       v.VendorName
+from tblPurchaseOrderLine pol
+inner join vEarliestHistoricalPrice vep on pol.ProductID = vep.ProductID
+inner join tblProduct p on pol.ProductID = p.ProductID
+inner join tblPurchaseOrder po on pol.PONumber = po.PONumber
+inner join tblVendor v on po.VendorID = v.VendorID
+where pol.Price > vep.EarliestHistoricalPrice * 1.25
+  and vep.EarliestHistoricalPrice > 0
+order by pol.ProductID, po.PODatePlace;

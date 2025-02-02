@@ -17,7 +17,6 @@ on Ord.ProductID = Prod.ProductID
 group by Prod.ProductID, Prod.ProductDescription
 order by Prod.ProductID;
 
-
 select 
 ord.PONumber,
 isnull(ven.VendorName, 'Unknown Vendor') as VendorName,
@@ -44,3 +43,50 @@ left outer join tblReceiver as rec
 on ord.POLineID = rec.POLineID
 group by ord.PONumber, ven.VendorName, ord.ProductID, prod.ProductDescription, ord.DateNeeded, ord.QtyOrdered
 order by ord.PONumber, ord.ProductID, ord.DateNeeded;
+
+select max(pol.price) as HighestPriceAlpineSmallPot
+from tblPurchaseOrderLine pol
+inner join tblProduct p on pol.ProductID = p.ProductID
+where p.ProductDescription = 'Alpine Small Pot';
+
+select max(pol.price) as HighestPriceAlpineSmallPot
+from tblPurchaseOrderLine pol
+inner join tblProduct p on pol.ProductID = p.ProductID
+where p.ProductDescription = 'Alpine Small Pot';
+
+select distinct pol.PONumber, 
+    pol.ProductID, 
+    p.ProductDescription, 
+    pol.Price
+from tblPurchaseOrderLine pol
+inner join tblProduct p on pol.ProductID = p.ProductID
+where p.ProductDescription = 'Alpine Small Pot'
+  and pol.Price = (
+    select max(sub_pol.price)
+    from tblPurchaseOrderLine sub_pol
+    inner join tblProduct sub_p on sub_pol.ProductID = sub_p.ProductID
+    where sub_p.ProductDescription = 'Alpine Small Pot'
+  )
+order by pol.PONumber;
+
+select distinct pol.PONumber, 
+                v.VendorName,
+				pol.ProductID,
+				p.ProductDescription, 
+                pol.Price, 
+                e.EmpLastName + ', ' + left(e.EmpFirstName, 1) + '.' as PurchaseEmployeeName,
+                m.EmpLastName + ', ' + left(m.EmpFirstName, 1) + '.' as PurchaseEmployeeManagerName
+from tblPurchaseOrderLine pol
+inner join tblProduct p on pol.ProductID = p.ProductID
+inner join tblPurchaseOrder po on pol.PONumber = po.PONumber
+inner join tblEmployee e on po.BuyerEmpID = e.EmpID
+left join tblEmployee m on e.EmpMgrID = m.EmpID
+inner join tblVendor v on po.VendorID = v.VendorID
+where p.ProductDescription = 'Alpine Small Pot'
+  and pol.Price = (
+    select max(sub_pol.price)
+    from tblPurchaseOrderLine sub_pol
+    inner join tblProduct sub_p on sub_pol.ProductID = sub_p.ProductID
+    where sub_p.ProductDescription = 'Alpine Small Pot'
+  )
+order by pol.PONumber;

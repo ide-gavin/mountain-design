@@ -48,3 +48,89 @@ on Emp.EmpMgrID = Mgr.EmpID
 where month(PODateNeeded) IN (10,11)
 and year(PODateNeeded) = year(getdate())
 order by PODateNeeded desc;
+
+create view vTotalQty as
+select rec.POLineID, 
+       pol.PONumber,
+       sum(rec.QtyReceived) as TotalQtyReceived,
+       pol.QtyOrdered - isnull(sum(rec.QtyReceived), 0) as QtyRemaining,
+       case 
+           when isnull(sum(rec.QtyReceived), 0) = 0 then 'Not Received'
+           when pol.QtyOrdered - isnull(sum(rec.QtyReceived), 0) = 0 then 'Complete'
+           when pol.QtyOrdered - isnull(sum(rec.QtyReceived), 0) < 0 then 'Over Shipped'
+           when pol.QtyOrdered - isnull(sum(rec.QtyReceived), 0) > 0 then 'Partially Received'
+       end as ReceivingStatus
+from tblReceiver rec
+inner join tblPurchaseOrderLine pol on rec.POLineID = pol.POLineID
+group by rec.POLineID, pol.PONumber, pol.QtyOrdered;
+
+select pol.PONumber, 
+       po.PODatePlace as PODatePlaced,
+       v.VendorName as VendorName,
+       isnull(e.EmpLastName + ', ' + substring(e.EmpFirstName, 1, 1), 'No Buyer On File') as EmployeeBuyer,
+       pol.ProductID, 
+       p.ProductDescription, 
+       pol.DateNeeded, 
+       pol.Price as ProductPrice, 
+       pol.QtyOrdered, 
+       isnull(vw.TotalQtyReceived, 0) as TotalQtyReceived,
+       pol.QtyOrdered - isnull(vw.TotalQtyReceived, 0) as QtyRemaining,
+       case 
+           when pol.QtyOrdered - isnull(vw.TotalQtyReceived, 0) = 0 then 'Complete'
+           when pol.QtyOrdered - isnull(vw.TotalQtyReceived, 0) < 0 then 'Over Shipped'
+           when pol.QtyOrdered - isnull(vw.TotalQtyReceived, 0) > 0 and isnull(vw.TotalQtyReceived, 0) > 0 then 'Partially Received'
+           when isnull(vw.TotalQtyReceived, 0) = 0 then 'Not Received'
+       end as ReceivingStatus
+from tblPurchaseOrderLine pol
+left join vTotalQty vw on pol.POLineID = vw.POLineID
+inner join tblProduct p on pol.ProductID = p.ProductID
+left join tblPurchaseOrder po on pol.PONumber = po.PONumber
+left join tblVendor v on po.VendorID = v.VendorID
+left join tblEmployee e on po.BuyerEmpID = e.EmpID
+order by pol.PONumber, pol.ProductID, pol.DateNeeded;
+
+create view vOpenPOL as
+select pol.PONumber
+from tblPurchaseOrderLine pol
+left join tblReceiver rec on pol.POLineID = rec.POLineID
+group by pol.PONumber, pol.POLineID, pol.QtyOrdered
+having 
+    isnull(sum(rec.QtyReceived), 0) = 0
+    or pol.QtyOrdered - isnull(sum(rec.QtyReceived), 0) > 0;
+
+select distinct po.PONumber,
+                convert(varchar, po.PODatePlace, 107) as PODatePlaced,
+                convert(varchar, po.PODateNeeded, 107) as PODateNeeded,
+                isnull(v.VendorName, 'Unknown Vendor') as VendorName
+from tblPurchaseOrder po
+left join tblVendor v on po.VendorID = v.VendorID
+where po.PONumber in (
+    select PONumber 
+    from vOpenPOL
+)
+order by po.PONumber;
+
+create view vClosedPOL as
+select pol.PONumber
+from tblPurchaseOrderLine pol
+left join tblReceiver rec on pol.POLineID = rec.POLineID
+group by pol.PONumber, pol.POLineID, pol.QtyOrdered
+having 
+    pol.QtyOrdered - isnull(sum(rec.QtyReceived), 0) <= 0;
+
+select po.PONumber,
+       convert(varchar, po.PODatePlace, 107) as PODatePlaced,
+       convert(varchar, po.PODateNeeded, 107) as PODateNeeded,
+       isnull(v.VendorName, 'Unknown Vendor') as VendorName,
+       min(rec.DateReceived) as EarliestDateReceived,
+       max(rec.DateReceived) as LatestDateReceived
+from tblPurchaseOrder po
+left join tblVendor v on po.VendorID = v.VendorID
+left join tblPurchaseOrderLine pol on po.PONumber = pol.PONumber
+left join tblReceiver rec on pol.POLineID = rec.POLineID
+where po.PONumber not in (
+    select PONumber 
+    from vOpenPOL
+)
+group by po.PONumber, po.PODatePlace, po.PODateNeeded, v.VendorName
+order by po.PONumber;

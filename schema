@@ -1,0 +1,83 @@
+CREATE TABLE tblVendor
+    (VendorID CHAR(5) PRIMARY KEY NOT NULL,
+    VendorName VARCHAR(30) NOT NULL,
+    VendorAddress1 VARCHAR(30) NOT NULL,
+    VendorAddress2 VARCHAR(30),
+    VendorCity VARCHAR(20) NOT NULL,
+    VendorState CHAR(2) NOT NULL,
+    VendorZip VARCHAR(12) NOT NULL,
+    VendorEmail VARCHAR(30),
+    VendorContact VARCHAR(30),
+    VendorPhone CHAR(15) NOT NULL,
+    FirstBuy DATETIME);
+
+CREATE TABLE tblProductType
+    (ProductTypeID CHAR(2) PRIMARY KEY NOT NULL,
+    TypeDescription VARCHAR(30) NOT NULL);
+
+CREATE TABLE tblProduct
+    (ProductID CHAR(5) PRIMARY KEY NOT NULL,
+    ProductDescription VARCHAR(30) NOT NULL,
+    UOM CHAR(10) CHECK (UOM IN ('each', 'feet', 'inches', 'meters', 'cm', 'sheet', 'case')),
+    EOQ DECIMAL(6,2),
+    QOH DECIMAL(8,2) NOT NULL,
+    QOHDateUpdated DATETIME,
+    ProductTypeID CHAR(2) FOREIGN KEY REFERENCES tblProductType(ProductTypeID) NOT NULL);
+
+CREATE TABLE tblEmployee 
+    (EmpID CHAR(6) PRIMARY KEY NOT NULL,
+    EmpLastName VARCHAR(30) NOT NULL,
+    EmpFirstName VARCHAR(30) NOT NULL,
+    EmpEmail VARCHAR(30),
+    EmpPhone CHAR(15) NOT NULL,
+    EmpMgrID CHAR(6),
+    CONSTRAINT FK_EmpMgr FOREIGN KEY (EmpMgrID) REFERENCES tblEmployee(EmpID));
+
+CREATE TABLE tblCondition 
+    (ConditionID CHAR(2) PRIMARY KEY NOT NULL,
+    ConditionDescription VARCHAR(30) NOT NULL);
+
+CREATE TABLE tblPurchaseOrder
+    (PONumber CHAR(6) PRIMARY KEY NOT NULL,
+    PODatePlace DATETIME NOT NULL,
+    PODateNeeded DATETIME,
+    Terms VARCHAR(15),
+    Conditions VARCHAR(15),
+    BuyerEmpID CHAR(6) FOREIGN KEY REFERENCES tblEmployee(EmpID),
+    VendorID CHAR(5) FOREIGN KEY REFERENCES tblVendor(VendorID) NOT NULL);
+
+CREATE TABLE tblPurchaseOrderLine
+    (POLineID INT PRIMARY KEY NOT NULL,
+    PONumber CHAR(6) FOREIGN KEY REFERENCES tblPurchaseOrder(PONumber) NOT NULL,
+    ProductID CHAR(5) FOREIGN KEY REFERENCES tblProduct(ProductID) NOT NULL,
+    QtyOrdered DECIMAL(6,2) CHECK (QtyOrdered > 0),
+    Price MONEY NOT NULL,
+    DateNeeded DATETIME NOT NULL);
+
+CREATE TABLE tblVendorReview 
+    (ReviewID INT IDENTITY(10, 10) PRIMARY KEY NOT NULL,
+    ReviewDate DATETIME NOT NULL,
+    ReviewTitle VARCHAR(50) NOT NULL,
+    ReviewRating INT CHECK (ReviewRating BETWEEN 1 AND 5) NOT NULL,
+    ReviewComments VARCHAR(500),
+    ProductID CHAR(5) FOREIGN KEY REFERENCES tblProduct (ProductID),
+    VendorID CHAR(5) FOREIGN KEY REFERENCES tblVendor (VendorID) NOT NULL);
+
+CREATE TABLE tblPurchaseHistory
+    (HistoryID INT IDENTITY(1, 1) PRIMARY KEY NOT NULL,
+    ProductID CHAR(5) FOREIGN KEY REFERENCES tblProduct(ProductID) NOT NULL,
+    DatePurchased DATETIME NOT NULL,
+    Qty DECIMAL(8,2) NOT NULL,
+    Price MONEY,
+    QtyReceivedOnTime DECIMAL(8,2),
+    QtyReceivedDamaged DECIMAL(8,2),
+    VendorID CHAR(5) FOREIGN KEY REFERENCES tblVendor(VendorID));
+
+CREATE TABLE tblReceiver
+    (ReceiverID INT IDENTITY(1, 1) PRIMARY KEY,
+    DateReceived DATETIME NOT NULL,
+    QtyReceived DECIMAL(6,2) CHECK (QtyReceived > 0),
+    ConditionID CHAR(2) FOREIGN KEY REFERENCES tblCondition(ConditionID) NOT NULL,
+    ReceiveEmpId CHAR(6) FOREIGN KEY REFERENCES tblEmployee(EmpID),
+    POLineID INT FOREIGN KEY REFERENCES tblPurchaseOrderLine(POLineID));
+ 

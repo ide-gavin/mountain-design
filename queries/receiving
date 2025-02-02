@@ -30,3 +30,55 @@ on Ord.PONumber = Pur.PONumber
 inner join tblVendor Ven on Pur.VendorID = Ven.VendorID
 where Con.ConditionDescription like '%damage%'
 order by Ord.ProductID asc, Rec.DateReceived asc;
+
+select rec.ReceiveEmpID,
+       sum(rec.QtyReceived) as TotalReceived,
+       sum(case 
+               when c.ConditionDescription like '%damage%' 
+               then rec.QtyReceived 
+               else 0 
+           end) as TotalDamaged,
+       cast(round(
+           cast(sum(case 
+                        when c.ConditionDescription like '%damage%' 
+                        then rec.QtyReceived 
+                        else 0 
+                    end) as float) / 
+           cast(sum(rec.QtyReceived) as float) * 100, 2) as decimal(10, 6)) as PercentDamaged
+from tblReceiver rec
+left join tblCondition c on rec.ConditionID = c.ConditionID
+group by rec.ReceiveEmpID;
+
+with EmployeeDamageStats as (
+    select rec.ReceiveEmpID as EmployeeID,
+           sum(rec.QtyReceived) as TotalReceived,
+           sum(case 
+                   when c.ConditionDescription like '%damage%' 
+                   then rec.QtyReceived 
+                   else 0 
+               end) as TotalDamaged,
+           cast(round(
+               cast(sum(case 
+                            when c.ConditionDescription like '%damage%' 
+                            then rec.QtyReceived 
+                            else 0 
+                        end) as float) / 
+               cast(sum(rec.QtyReceived) as float) * 100, 2) as decimal(10, 6)) as PercentDamaged
+    from tblReceiver rec
+    left join tblCondition c on rec.ConditionID = c.ConditionID
+    group by rec.ReceiveEmpID
+)
+select e.EmpID as EmployeeID,
+       e.EmpLastName + ', ' + left(e.EmpFirstName, 1) + '.' as EmployeeName,
+       e.EmpEmail,
+       m.EmpID as ManagerEmpID,
+       m.EmpLastName + ', ' + left(m.EmpFirstName, 1) + '.' as ManagerName,
+       m.EmpEmail as ManagerEmail,
+       eds.PercentDamaged
+from EmployeeDamageStats eds
+inner join tblEmployee e on eds.EmployeeID = e.EmpID
+left join tblEmployee m on e.EmpMgrID = m.EmpID
+where eds.PercentDamaged = (
+    select max(PercentDamaged)
+    from EmployeeDamageStats
+);

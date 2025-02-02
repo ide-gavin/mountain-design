@@ -1,0 +1,38 @@
+CREATE TABLE tblWorkOrder (
+	WorkOrderID INT PRIMARY KEY NOT NULL,
+	WOQuantity INT NOT NULL,
+	WODateIssued DATETIME NOT NULL,
+	WODateNeeded DATETIME NOT NULL,
+	ProductID char(5) FOREIGN KEY REFERENCES tblProduct(ProductID),
+	EmpID char(6) FOREIGN KEY REFERENCES tblEmployee(EmpID)
+);
+
+CREATE TABLE tblWorkOrderLine (
+	WOLineID INT PRIMARY KEY NOT NULL,
+	WOLineQty decimal (6,2) NOT NULL,
+	WorkOrderID int FOREIGN KEY REFERENCES tblWorkOrder(WorkOrderID),
+	ProductID char(5) FOREIGN KEY REFERENCES tblProduct(ProductID)
+);
+
+CREATE TABLE tblInvoice (
+    InvoiceID INT PRIMARY KEY NOT NULL,
+    VendorInvoiceNumber VARCHAR(20) NOT NULL,
+    PaymentTermsID INT, 
+    InvoiceDate DATETIME NOT NULL,
+    InvoiceDueDate DATETIME NOT NULL,
+    ProductTotal DECIMAL(10, 2) NOT NULL,
+    DeliveryCharges DECIMAL(10, 2) NOT NULL,
+    Tax DECIMAL(10, 2) NOT NULL,   
+    InvoiceSubTotal DECIMAL(10, 2) NOT NULL,
+    InvoiceFinalTotal DECIMAL(10, 2) NOT NULL,
+    PONumber char(6) FOREIGN KEY REFERENCES tblPurchaseOrder(PONumber),
+    VendorID char(5) FOREIGN KEY REFERENCES tblVendor(VendorID)
+);
+
+CREATE TABLE tblInvoiceLine (
+    InvoiceLineID INT PRIMARY KEY NOT NULL,
+    InvoiceQty INT NOT NULL,  
+    InvoiceUnitPrice DECIMAL(10, 2) NOT NULL, 
+    InvoiceID int FOREIGN KEY REFERENCES tblInvoice(InvoiceID),
+    POLineID int FOREIGN KEY REFERENCES tblPurchaseOrderLine(POLineID)
+);

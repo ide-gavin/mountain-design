@@ -1,4 +1,4 @@
-# mountain-design
+# Mountain Design Database
 
 This project is a comprehensive SQL-based supply chain and inventory management system. It simulates a real-world business scenario where organizations manage work orders, purchase orders, vendors, invoices, and product inventory.
 

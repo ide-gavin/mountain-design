@@ -1,0 +1,47 @@
+select 
+    i.InvoiceID,
+    i.InvoiceDueDate,
+    po.PONumber,
+    po.PODatePlace as PODatePlaced,
+    v.VendorName,
+    p.ProductID,
+    p.ProductDescription,
+    il.InvoiceQty,
+    il.InvoiceUnitPrice
+from tblInvoice i
+inner join tblInvoiceLine il on i.InvoiceID = il.InvoiceID
+inner join tblPurchaseOrder po on i.PONumber = po.PONumber
+inner join tblVendor v on po.VendorID = v.VendorID
+inner join tblPurchaseOrderLine pol on il.POLineID = pol.POLineID
+inner join tblProduct p on pol.ProductID = p.ProductID
+order by i.InvoiceID, p.ProductID;
+
+select 
+    i.InvoiceID,
+    i.InvoiceDate,
+    i.InvoiceDueDate,
+    v.VendorName,
+    pol.POLineID,
+    p.ProductDescription,
+    isnull(r.EarliestReceivedDate, null) as EarliestReceivedDate,
+    isnull(r.LatestReceivedDate, null) as LatestReceivedDate,
+    pol.QtyOrdered,
+    isnull(r.TotalQtyReceived, 0) as TotalReceived
+from tblInvoice i
+inner join tblInvoiceLine il on i.InvoiceID = il.InvoiceID
+inner join tblPurchaseOrderLine pol on il.POLineID = pol.POLineID
+inner join tblProduct p on pol.ProductID = p.ProductID
+inner join tblPurchaseOrder po on i.PONumber = po.PONumber
+inner join tblVendor v on po.VendorID = v.VendorID
+left join (
+    select 
+        rec.POLineID,
+        min(rec.DateReceived) as EarliestReceivedDate,
+        max(rec.DateReceived) as LatestReceivedDate,
+        sum(rec.QtyReceived) as TotalQtyReceived
+    from tblReceiver rec
+    group by rec.POLineID
+) r on pol.POLineID = r.POLineID
+where il.InvoiceQty > isnull(r.TotalQtyReceived, 0)
+  and isnull(r.TotalQtyReceived, 0) <= pol.QtyOrdered
+order by i.InvoiceID, pol.POLineID;

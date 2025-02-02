@@ -1,0 +1,55 @@
+select 
+    wo.WorkOrderID,
+    wo.ProductID as WOProductID,
+    pwo.ProductDescription as WOProductDescription,
+    wo.WODateIssued,
+    wol.ProductID as WOLProductID,
+    pwol.ProductDescription as WOLProductDescription,
+    wol.WOLineID,
+    wol.WOLineQty
+from tblWorkOrder wo
+inner join tblWorkOrderLine wol on wo.WorkOrderID = wol.WorkOrderID
+inner join tblProduct pwo on wo.ProductID = pwo.ProductID
+inner join tblProduct pwol on wol.ProductID = pwol.ProductID
+order by wo.WorkOrderID, wol.WOLineID;
+
+select 
+    p.ProductID,
+    p.ProductDescription,
+	p.UOM,
+    pt.TypeDescription
+from tblProduct p
+left join tblWorkOrderLine wol on p.ProductID = wol.ProductID
+inner join tblProductType pt on p.ProductTypeID = pt.ProductTypeID
+where wol.ProductID is null
+order by p.ProductID;
+
+create view vWorkOrdersByEmployee as
+select 
+    wo.EmpID,
+    count(distinct wo.WorkOrderID) as CountOfWorkOrders,
+    sum(wo.WOQuantity) as TotalWOQuantity
+from tblWorkOrder wo
+group by wo.EmpID;
+
+create view vWorkOrderLinesByEmployee as
+select 
+    wo.EmpID,
+    count(wol.WOLineID) as CountOfWorkOrderLines,
+    sum(wol.WOLineQty) as TotalWOLineQuantity
+from tblWorkOrder wo
+inner join tblWorkOrderLine wol on wo.WorkOrderID = wol.WorkOrderID
+group by wo.EmpID;
+
+select 
+    e.EmpID,
+    e.EmpLastName,
+    e.EmpFirstName,
+    isnull(woe.CountOfWorkOrders, 0) as CountOfWorkOrders,
+    isnull(woe.TotalWOQuantity, 0) as TotalWOQuantity,
+    isnull(wole.CountOfWorkOrderLines, 0) as CountOfWorkOrderLines,
+    isnull(wole.TotalWOLineQuantity, 0) as TotalWOLineQuantity
+from tblEmployee e
+inner join vWorkOrdersByEmployee woe on e.EmpID = woe.EmpID
+inner join vWorkOrderLinesByEmployee wole on e.EmpID = wole.EmpID
+order by e.EmpID;

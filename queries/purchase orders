@@ -1,0 +1,50 @@
+select convert(varchar, Ord.PODateNeeded, 107) AS DateofRequiredDelivery, Ord.PONumber, 
+convert(varchar, Ord.PODatePlace, 107) AS DateofPurchaseOrder, Ven.VendorName,
+'(' + SUBSTRING(VendorPhone, 1, 3) + ') ' + SUBSTRING(VendorPhone, 4, 3) + '-' +
+SUBSTRING(VendorPhone, 7, 4) AS VendorPhone,
+Ord.BuyerEmpID
+from tblPurchaseOrder Ord
+inner join tblVendor Ven
+on Ord.VendorID = Ven.VendorID
+where month(PODateNeeded) IN (10,11) and year(PODateNeeded) = year(getdate())
+order by PODateNeeded desc;
+
+select convert(varchar, Ord.PODateNeeded, 107) AS DateofRequiredDelivery, Ord.PONumber, 
+convert(varchar, Ord.PODatePlace, 107) AS DateofPurchaseOrder, Ven.VendorName,
+'(' + SUBSTRING(VendorPhone, 1, 3) + ') ' + SUBSTRING(VendorPhone, 4, 3) + '-' +
+SUBSTRING(VendorPhone, 7, 4) AS VendorPhone,
+case
+when EmpID IS NOT NULL THEN EmpFirstName + ' ' + EmpLastName
+else 'No Buyer'
+end as BuyerName
+from tblPurchaseOrder Ord
+inner join tblVendor Ven
+on Ord.VendorID = Ven.VendorID
+left outer join tblEmployee Emp
+on Ord.BuyerEmpID = Emp.EmpID
+where month(PODateNeeded) IN (10,11)
+and year(PODateNeeded) = year(getdate())
+order by PODateNeeded desc;
+
+select convert(varchar, Ord.PODateNeeded, 107) AS DateofRequiredDelivery, Ord.PONumber, 
+convert(varchar, Ord.PODatePlace, 107) AS DateofPurchaseOrder, Ven.VendorName,
+'(' + SUBSTRING(VendorPhone, 1, 3) + ') ' + SUBSTRING(VendorPhone, 4, 3) + '-' +
+SUBSTRING(VendorPhone, 7, 4) AS VendorPhone,
+case
+when Emp.EmpID IS NOT NULL THEN Emp.EmpFirstName + ' ' + Emp.EmpLastName
+else 'No Buyer'
+end as BuyerName,
+case
+when Emp.EmpMgrID IS NOT NULL THEN Mgr.EmpFirstName + ' ' + Mgr.EmpLastName
+else '**No Manager**'
+end as ManagerName
+from tblPurchaseOrder Ord
+inner join tblVendor Ven
+on Ord.VendorID = Ven.VendorID
+left outer join tblEmployee Emp
+on Ord.BuyerEmpID = Emp.EmpID
+left outer join tblEmployee Mgr
+on Emp.EmpMgrID = Mgr.EmpID
+where month(PODateNeeded) IN (10,11)
+and year(PODateNeeded) = year(getdate())
+order by PODateNeeded desc;

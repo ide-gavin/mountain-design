@@ -1,0 +1,46 @@
+select *
+from tblProduct
+where ProductID NOT IN (
+select productid
+from tblPurchaseHistory
+);
+
+select Prod.ProductID, Prod.ProductDescription,
+isnull(count(distinct Ord.PONumber), 0) as CountofPurchaseOrders,
+isnull(cast(sum(QtyOrdered) as int), 0) as TotalQuantityOrdered,
+isnull(max(Price), 0) as MaximumPricePaid,
+isnull(min(Price), 0) as MinimumPricePaid,
+isnull(cast(avg(Price) as decimal(10,2)), 0) as AveragePricePaid
+from tblProduct Prod
+left outer join tblPurchaseOrderLine Ord
+on Ord.ProductID = Prod.ProductID
+group by Prod.ProductID, Prod.ProductDescription
+order by Prod.ProductID;
+
+
+select 
+ord.PONumber,
+isnull(ven.VendorName, 'Unknown Vendor') as VendorName,
+ord.ProductID,
+prod.ProductDescription,
+ord.DateNeeded,
+ord.QtyOrdered as QuantityOrdered,
+isnull(sum(rec.QtyReceived), 0) as TotalQtyReceived,
+ord.QtyOrdered - isnull(sum(rec.QtyReceived), 0) as QtyLeftToReceive,
+case 
+    when isnull(sum(rec.QtyReceived), 0) = 0 then 'Not Received'
+    when ord.QtyOrdered - sum(rec.QtyReceived) = 0 then 'Complete'
+    when ord.QtyOrdered - sum(rec.QtyReceived) < 0 then 'Over Shipment'
+    when ord.QtyOrdered - sum(rec.QtyReceived) > 0 then 'Partial Shipment'
+end as ReceivingStatus
+from tblPurchaseOrderLine as ord
+inner join tblProduct as prod
+on ord.ProductID = prod.ProductID
+left outer join tblPurchaseOrder as pur
+on ord.PONumber = pur.PONumber
+left outer join tblVendor as ven
+on pur.VendorID = ven.VendorID
+left outer join tblReceiver as rec
+on ord.POLineID = rec.POLineID
+group by ord.PONumber, ven.VendorName, ord.ProductID, prod.ProductDescription, ord.DateNeeded, ord.QtyOrdered
+order by ord.PONumber, ord.ProductID, ord.DateNeeded;
